@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CycleSync Fit V.10</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-pink: #e91e63;
+            --follicular-purple: #9c27b0;
+            --ovulatory-gold: #ff9800;
+            --luteal-teal: #009688;
+            --nutrition-green: #4caf50;
+            --soft-pink: #fce4ec;
+            --soft-green: #e8f5e9;
+            --neutral-bg: #f5f5f5;
+            --text-dark: #333;
+            --card-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--neutral-bg);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background-color: var(--card-white);
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 10px solid var(--primary-pink);
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        h1 { color: var(--primary-pink); margin-bottom: 10px; font-size: 2.2rem; }
+        p.subtitle { color: #777; margin-bottom: 30px; }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: #555; }
+        
+        input[type="date"], select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-pink);
+            outline: none;
+        }
+
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-pink);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            margin-top: 10px;
+        }
+
+        button:hover { background-color: #d81b60; }
+        button:active { transform: scale(0.98); }
+
+        #result {
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            background-color: var(--soft-pink);
+            color: var(--primary-pink);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .phase-title { font-size: 1.5rem; margin: 0 0 5px 0; color: #222; }
+        .energy-level { font-size: 0.95rem; color: #666; margin-bottom: 20px; }
+
+        .workout-box {
+            background-color: #fafafa;
+            border: 1px solid #eee;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .workout-box h3 { margin-top: 0; color: var(--primary-pink); }
+
+        .fuel-box {
+            background-color: var(--soft-green);
+            border: 1px solid #c8e6c9;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .fuel-icon { font-size: 1.5rem; }
+        .fuel-content h4 { margin: 0 0 5px 0; color: #2e7d32; font-size: 1rem; }
+        .fuel-content p { margin: 0; font-size: 0.9rem; color: #444; line-height: 1.4; }
+
+        ul { padding-left: 20px; margin-bottom: 0; }
+        li { margin-bottom: 8px; line-height: 1.5; }
+
+        /* Calendar */
+        .calendar-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+        .calendar-header { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-day-header { font-size: 0.8rem; color: #888; text-align: center; padding-bottom: 5px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.9rem; background-color: #fff; border: 1px solid #eee; }
+        .calendar-day.is-today { border: 2px solid #333; font-weight: bold; }
+        .bg-menstrual { background-color: var(--primary-pink); color: white; border-color: var(--primary-pink); }
+        .bg-follicular { background-color: var(--follicular-purple); color: white; border-color: var(--follicular-purple); }
+        .bg-ovulatory { background-color: var(--ovulatory-gold); color: white; border-color: var(--ovulatory-gold); }
+        .bg-luteal { background-color: var(--luteal-teal); color: white; border-color: var(--luteal-teal); }
+        .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; font-size: 0.8rem; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Chart */
+        .chart-container {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .chart-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: #444; }
+
+        /* Tracker Section */
+        .tracker-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: left;
+        }
+        .tracker-section h3 { font-size: 1.2rem; color: var(--primary-pink); margin-bottom: 5px; }
+        .tracker-desc { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+        
+        .tracker-result {
+            background-color: var(--soft-pink);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+            border: 1px solid var(--primary-pink);
+        }
+        .tracker-big-num { font-size: 2rem; font-weight: bold; color: var(--primary-pink); margin: 5px 0; }
+        
+        .col-sm { flex: 0.5; } 
+        .col-lg { flex: 2; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CycleSync Fit</h1>
+    <p class="subtitle">Sync your gym routine with your biology.</p>
+
+    <div class="row">
+        <div class="col form-group">
+            <label for="startDate">Last Period Start:</label>
+            <input type="date" id="startDate">
+        </div>
+        <div class="col form-group">
+            <label for="cycleLength">Cycle Length (Days):</label>
+            <input type="number" id="cycleLength" value="28" min="21" max="45">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="focusArea">Workout Focus:</label>
+        <select id="focusArea">
+            <option value="Full Body">Full Body</option>
+            <option value="Legs">Legs</option>
+            <option value="Glutes">Glutes</option>
+            <option value="Arms">Arms & Shoulders</option>
+        </select>
+    </div>
+
+    <button onclick="generatePlan()">Get Workout</button>
+
+    <div id="result">
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 25px 0;">
+        
+        <div class="phase-badge" id="phaseBadge">PHASE</div>
+        <h2 class="phase-title" id="phaseTitle">Phase Name</h2>
+        <div class="energy-level" id="phaseDesc">Energy description goes here.</div>
+
+        <div class="workout-box">
+            <h3>Today's Plan: <span id="workoutFocusDisplay"></span></h3>
+            <p id="workoutStrategy" style="font-style: italic; font-size: 0.9rem; margin-bottom: 15px;"></p>
+            <ul id="exerciseList"></ul>
+        </div>
+
+        <div class="fuel-box">
+            <div class="fuel-icon">🥑</div>
+            <div class="fuel-content">
+                <h4>Fuel Your Body</h4>
+                <p id="fuelTip">Nutrition advice goes here.</p>
+            </div>
+        </div>
+
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <span id="calendarMonthName">Month</span>
+            </div>
+            <div class="calendar-grid">
+                <div class="calendar-day-header">S</div><div class="calendar-day-header">M</div><div class="calendar-day-header">T</div><div class="calendar-day-header">W</div><div class="calendar-day-header">T</div><div class="calendar-day-header">F</div><div class="calendar-day-header">S</div>
+                <div id="calendarDays" style="display: contents;"></div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="background: var(--primary-pink)"></div> Menstrual</div>
+                <div class="legend-item"><div class="dot" style="background: var(--follicular-purple)"></div> Follicular</div>
+                <div class="legend-item"><div class="dot" style="background: var(--ovulatory-gold)"></div> Ovulatory</div>
+                <div class="legend-item"><div class="dot" style="background: var(--luteal-teal)"></div> Luteal</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Energy & Strength Curve</div>
+            <canvas id="energyChart"></canvas>
+        </div>
+
+        <div class="tracker-section">
+            <h3>Weight Calculator</h3>
+            <p class="tracker-desc">Input your max for a given workout</p>
+            
+            <div class="row">
+                <div class="col col-lg">
+                    <label style="font-size: 0.8rem;">Weight (lbs/kg)</label>
+                    <input type="number" id="inputWeight" placeholder="e.g. 100">
+                </div>
+                <div class="col col-sm">
+                    <label style="font-size: 0.8rem;">Reps</label>
+                    <select id="inputReps">
+                        <option value="1">1</option>
+                        <option value="3">3</option>
+                        <option value="6">6</option>
+                        <option value="8">8</option>
+                        <option value="10">10</option>
+                        <option value="12">12</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button onclick="calculateSafeWeight()" style="margin-top: 15px; background-color: #333;">Calculate Safe Load</button>
+
+            <div class="tracker-result" id="trackerResult">
+                <div style="font-size: 0.9rem; font-weight: bold;">RECOMMENDED LOAD</div>
+                <div class="tracker-big-num" id="calcWeightDisplay">0 lbs</div>
+                <div id="calcAdviceDisplay" style="font-size: 0.9rem; color: #555;">Advice text here</div>
+                <div id="estimatedMaxDisplay" style="font-size: 0.8rem; color: #888; margin-top:5px; border-top:1px solid #ddd; padding-top:5px;"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- WORKOUT & NUTRITION DATABASE ---
+    const workoutData = {
+        menstrual: { strategy: "Low impact, recovery, and light movement.", nutrition: "Rich in Iron & Vitamin C (Spinach, Red Meat, Citrus). Warm, cooked foods are best.", exercises: {"Legs": ["Bodyweight Squats", "Calf Raises", "Lying Leg Curls (Light)"], "Glutes": ["Glute Bridges", "Clamshells", "Side Leg Lifts"], "Arms": ["Light Curls", "Arm Circles", "Tricep Kickbacks"], "Full Body": ["Yin Yoga", "Walking", "Mobility"]} },
+        follicular: { strategy: "Heavy lifting and hypertrophy. Build muscle!", nutrition: "Complex Carbs & Protein (Oats, Chicken). Insulin sensitivity is high.", exercises: {"Legs": ["Squats", "Leg Press", "Split Squats"], "Glutes": ["Hip Thrusts", "Step Ups", "Cable Kickbacks"], "Arms": ["Overhead Press", "Pull Ups", "Bench Press"], "Full Body": ["Deadlifts", "Clean and Press", "Pushups"]} },
+        ovulatory: { strategy: "Maximum effort, HIIT, and PR attempts.", nutrition: "Antioxidants & Hydration (Berries, Greens). Cooling foods.", exercises: {"Legs": ["Jump Squats", "Walking Lunges", "Box Jumps"], "Glutes": ["Kettlebell Swings", "Broad Jumps", "Plyo Lunges"], "Arms": ["Battle Ropes", "Boxing", "Med Ball Slams"], "Full Body": ["Metcon", "Burpees", "Snatch"]} },
+        luteal: { strategy: "Moderate weights, higher reps, stability.", nutrition: "Magnesium & Fiber (Dark Choc, Avocado). Fight cravings.", exercises: {"Legs": ["Pilates Circles", "Goblet Squats", "Wall Sit"], "Glutes": ["Band Walks", "Donkey Kicks", "Single Leg Bridge"], "Arms": ["Pilates Pulses", "Band Rows", "Shoulder Taps"], "Full Body": ["Pilates", "Elliptical", "Turkish Get-Ups"]} }
+    };
+
+    function getPhaseInfo(cycleDay, totalLength) {
+        const ovulationDay = totalLength - 14; 
+        const menstrualEnd = 5;
+        const follicularEnd = ovulationDay - 2;
+        const ovulatoryEnd = ovulationDay + 1; 
+
+        if (cycleDay >= 1 && cycleDay <= menstrualEnd) return { key: "menstrual", name: "Menstrual", class: "bg-menstrual", desc: "Low Energy, Rest" };
+        else if (cycleDay > menstrualEnd && cycleDay <= follicularEnd) return { key: "follicular", name: "Follicular", class: "bg-follicular", desc: "High Energy, Build" };
+        else if (cycleDay > follicularEnd && cycleDay <= ovulatoryEnd) return { key: "ovulatory", name: "Ovulatory", class: "bg-ovulatory", desc: "Peak Energy, Push" };
+        else return { key: "luteal", name: "Luteal", class: "bg-luteal", desc: "Mod Energy, Sustain" };
+    }
+
+    let myEnergyChart = null;
+    let currentGlobalPhaseKey = ""; 
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const savedDate = localStorage.getItem('cycleStartDate');
+        const savedLength = localStorage.getItem('cycleLength');
+        const savedFocus = localStorage.getItem('cycleFocus');
+        if (savedDate) document.getElementById('startDate').value = savedDate;
+        if (savedLength) document.getElementById('cycleLength').value = savedLength;
+        if (savedFocus) document.getElementById('focusArea').value = savedFocus;
+        if (savedDate) generatePlan();
+    });
+
+    function generatePlan() {
+        const dateInput = document.getElementById('startDate').value;
+        const cycleLengthInput = document.getElementById('cycleLength').value;
+        const focusInput = document.getElementById('focusArea').value;
+        
+        if (!dateInput) { alert("Please select date."); return; }
+
+        localStorage.setItem('cycleStartDate', dateInput);
+        localStorage.setItem('cycleLength', cycleLengthInput);
+        localStorage.setItem('cycleFocus', focusInput);
+
+        const cycleLength = parseInt(cycleLengthInput) || 28;
+        const startDate = new Date(dateInput);
+        startDate.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const diffTime = today - startDate;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        let cycleDay = ((diffDays % cycleLength) + cycleLength) % cycleLength;
+        cycleDay = cycleDay + 1; 
+
+        const currentPhase = getPhaseInfo(cycleDay, cycleLength);
+        
+        currentGlobalPhaseKey = currentPhase.key;
+
+        document.getElementById('phaseBadge').innerText = `DAY ${cycleDay} • ${currentPhase.desc}`;
+        document.getElementById('phaseTitle').innerText = `${currentPhase.name} Phase`;
+        document.getElementById('phaseDesc').innerText = currentPhase.desc;
+        document.getElementById('workoutFocusDisplay').innerText = focusInput;
+        
+        const routine = workoutData[currentPhase.key];
+        document.getElementById('workoutStrategy').innerText = routine.strategy;
+        document.getElementById('fuelTip').innerText = routine.nutrition;
+
+        const exerciseListEl = document.getElementById('exerciseList');
+        exerciseListEl.innerHTML = ""; 
+        routine.exercises[focusInput].forEach(ex => {
+            let li = document.createElement('li');
+            li.innerText = ex;
+            exerciseListEl.appendChild(li);
+        });
+
+        renderCalendar(startDate, cycleLength);
+        renderGraph();
+        document.getElementById('result').style.display = "block";
+        document.getElementById('trackerResult').style.display = "none";
+    }
+
+    function calculateSafeWeight() {
+        const weight = parseFloat(document.getElementById('inputWeight').value);
+        const reps = parseInt(document.getElementById('inputReps').value);
+
+        if (!weight) { alert("Please enter a valid weight."); return; }
+        if (currentGlobalPhaseKey === "") { alert("Please click 'Get Workout' first so we know your phase."); return; }
+
+        let estimatedMax = weight;
+        if (reps > 1) {
+            estimatedMax = weight * (1 + (reps / 30));
+        }
+
+        let multiplier = 1;
+        let advice = "";
+
+        if (currentGlobalPhaseKey === "menstrual") {
+            multiplier = 0.60;
+            advice = "Light load. Focus on movement.";
+        } else if (currentGlobalPhaseKey === "follicular") {
+            multiplier = 0.90;
+            advice = "Go heavy! You can handle 90% intensity.";
+        } else if (currentGlobalPhaseKey === "ovulatory") {
+            multiplier = 1.0;
+            advice = "Peak strength. Attempt PRs if you feel good.";
+        } else { // luteal
+            multiplier = 0.75;
+            advice = "Moderate load. Focus on form.";
+        }
+
+        const safeWeight = Math.round(estimatedMax * multiplier);
+
+        document.getElementById('calcWeightDisplay').innerText = `${safeWeight} lbs / kg`;
+        document.getElementById('calcAdviceDisplay').innerText = advice;
+        document.getElementById('estimatedMaxDisplay').innerText = `Based on est. 1-Rep Max of ${Math.round(estimatedMax)}`;
+        document.getElementById('trackerResult').style.display = "block";
+    }
+
+    function renderCalendar(startDate, cycleLength) {
+        const calendarContainer = document.getElementById('calendarDays');
+        calendarContainer.innerHTML = "";
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth(); 
+        document.getElementById('calendarMonthName').innerText = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayIndex = new Date(year, month, 1).getDay();
+
+        for (let i = 0; i < firstDayIndex; i++) calendarContainer.appendChild(document.createElement('div'));
+        for (let d = 1; d <= daysInMonth; d++) {
+            const currentLoopDate = new Date(year, month, d);
+            currentLoopDate.setHours(0,0,0,0);
+            const diffTime = currentLoopDate - startDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            let loopCycleDay = ((diffDays % cycleLength) + cycleLength) % cycleLength; loopCycleDay++;
+            const phase = getPhaseInfo(loopCycleDay, cycleLength);
+            let dayDiv = document.createElement('div');
+            dayDiv.className = `calendar-day ${phase.class}`;
+            dayDiv.innerText = d;
+            if (d === today.getDate()) dayDiv.classList.add('is-today');
+            calendarContainer.appendChild(dayDiv);
+        }
+    }
+
+    function renderGraph() {
+        const ctx = document.getElementById('energyChart').getContext('2d');
+        if (myEnergyChart) myEnergyChart.destroy();
+        myEnergyChart = new Chart(ctx, { type: 'line', data: { labels: ['Menstrual', 'Follicular', 'Ovulatory', 'Luteal'], datasets: [{ label: 'Energy Level', data: [30, 75, 100, 50], borderColor: '#e91e63', backgroundColor: 'rgba(233, 30, 99, 0.1)', borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: ['#e91e63', '#9c27b0', '#ff9800', '#009688'], pointRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+    }
+</script>
+</body>
+</html>
