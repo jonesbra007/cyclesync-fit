@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CycleSync Fit V.10</title>
+    <title>CycleSync Fit V.131</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-pink: #e91e63;
-            --follicular-purple: #9c27b0;
-            --ovulatory-gold: #ff9800;
-            --luteal-teal: #009688;
-            --nutrition-green: #4caf50;
             --soft-pink: #fce4ec;
             --soft-green: #e8f5e9;
             --neutral-bg: #f5f5f5;
             --text-dark: #333;
             --card-white: #ffffff;
+            
+            /* Calendar Phase Colors */
+            --cal-menstrual: #f8bbd0;
+            --cal-follicular: #e1bee7;
+            --cal-ovulatory: #bbdefb;
+            --cal-luteal: #ffe0b2;
         }
 
         body {
@@ -134,17 +136,37 @@
         /* Calendar */
         .calendar-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
         .calendar-header { font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
         .calendar-day-header { font-size: 0.8rem; color: #888; text-align: center; padding-bottom: 5px; }
-        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.9rem; background-color: #fff; border: 1px solid #eee; }
-        .calendar-day.is-today { border: 2px solid #333; font-weight: bold; }
-        .bg-menstrual { background-color: var(--primary-pink); color: white; border-color: var(--primary-pink); }
-        .bg-follicular { background-color: var(--follicular-purple); color: white; border-color: var(--follicular-purple); }
-        .bg-ovulatory { background-color: var(--ovulatory-gold); color: white; border-color: var(--ovulatory-gold); }
-        .bg-luteal { background-color: var(--luteal-teal); color: white; border-color: var(--luteal-teal); }
+        
+        .calendar-day {
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #555;
+            background-color: #fff;
+            border: 2px solid #eee;
+            text-align: center;
+        }
+        
+        .calendar-day.is-today {
+            text-decoration: underline;
+            color: var(--primary-pink);
+        }
+
+        .bg-menstrual { background-color: var(--cal-menstrual); border-color: var(--cal-menstrual); color: #c2185b; }
+        .bg-follicular { background-color: var(--cal-follicular); border-color: var(--cal-follicular); color: #7b1fa2; }
+        .bg-ovulatory { background-color: var(--cal-ovulatory); border-color: var(--cal-ovulatory); color: #1976d2; }
+        .bg-luteal { background-color: var(--cal-luteal); border-color: var(--cal-luteal); color: #f57c00; }
+
         .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; font-size: 0.8rem; justify-content: center; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
 
         /* Chart */
         .chart-container {
@@ -238,15 +260,17 @@
             <div class="calendar-header">
                 <span id="calendarMonthName">Month</span>
             </div>
+            
+            <div class="legend" style="margin-bottom: 15px;">
+                <div class="legend-item"><div class="dot" style="background: var(--cal-menstrual)"></div> Menstrual</div>
+                <div class="legend-item"><div class="dot" style="background: var(--cal-follicular)"></div> Follicular</div>
+                <div class="legend-item"><div class="dot" style="background: var(--cal-ovulatory)"></div> Ovulatory</div>
+                <div class="legend-item"><div class="dot" style="background: var(--cal-luteal)"></div> Luteal</div>
+            </div>
+
             <div class="calendar-grid">
                 <div class="calendar-day-header">S</div><div class="calendar-day-header">M</div><div class="calendar-day-header">T</div><div class="calendar-day-header">W</div><div class="calendar-day-header">T</div><div class="calendar-day-header">F</div><div class="calendar-day-header">S</div>
                 <div id="calendarDays" style="display: contents;"></div>
-            </div>
-            <div class="legend">
-                <div class="legend-item"><div class="dot" style="background: var(--primary-pink)"></div> Menstrual</div>
-                <div class="legend-item"><div class="dot" style="background: var(--follicular-purple)"></div> Follicular</div>
-                <div class="legend-item"><div class="dot" style="background: var(--ovulatory-gold)"></div> Ovulatory</div>
-                <div class="legend-item"><div class="dot" style="background: var(--luteal-teal)"></div> Luteal</div>
             </div>
         </div>
 
@@ -439,7 +463,55 @@
     function renderGraph() {
         const ctx = document.getElementById('energyChart').getContext('2d');
         if (myEnergyChart) myEnergyChart.destroy();
-        myEnergyChart = new Chart(ctx, { type: 'line', data: { labels: ['Menstrual', 'Follicular', 'Ovulatory', 'Luteal'], datasets: [{ label: 'Energy Level', data: [30, 75, 100, 50], borderColor: '#e91e63', backgroundColor: 'rgba(233, 30, 99, 0.1)', borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: ['#e91e63', '#9c27b0', '#ff9800', '#009688'], pointRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+        myEnergyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Menstrual', 'Follicular', 'Ovulatory', 'Luteal'],
+                datasets: [{
+                    label: 'Energy Level',
+                    data: [30, 75, 100, 50], // Back to V.11 Data
+                    borderColor: '#e91e63',
+                    backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4, // Back to V.11 Tension
+                    fill: true,
+                    pointBackgroundColor: ['#e91e63', '#9c27b0', '#ff9800', '#009688'],
+                    pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 20, // Kept Fix
+                        bottom: 10,
+                        left: 10,
+                        right: 10
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 110, // Kept Fix
+                        display: false
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 </script>
 </body>
